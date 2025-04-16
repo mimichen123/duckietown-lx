@@ -5,7 +5,7 @@ import cv2
 def get_steer_matrix_left_lane_markings(shape: Tuple[int, int]) -> np.ndarray:
     """
     Args:
-        shape:              The shape of the steer matrix.aaa
+        shape:              The shape of the steer matrix. aaa
 
     Return:
         steer_matrix_left:  The steering (angular rate) matrix for Braitenberg-like control
