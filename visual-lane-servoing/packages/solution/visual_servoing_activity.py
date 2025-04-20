@@ -1,15 +1,73 @@
-from typing import Tuple
+import time
 import numpy as np
 import cv2
+from enum import Enum
+from PIL import Image
+from typing import Tuple
+import cv  # Duckietown's computer vision library
+
+class DriveState(Enum):
+    STOPPED = 1
+    FOLLOWING_LANE = 2
+    FINISHED = 3
+
+class Driver:
+    def __init__(self, car_interface):
+        self.car = car_interface  # Duckiebot car interface
+        self.speed_limit = 10.0
+        self.state = DriveState.FOLLOWING_LANE
+        self.num_updates = 0
+        self.start_time = time.time()
+
+    def update(self, image):
+        if self.state == DriveState.FOLLOWING_LANE:
+            steering = compute_steering(image)
+            # Use the computed steering to control the car's motors
+            self.car.command_motor_pwms(self.speed_limit, steering)
+
+    def debug_image(self, image):
+        print('Debugging image')
+        # Draw region of interest (ROI) for debugging purposes
+        cv.draw_region(image, cv.red_roi, (255, 255, 255))
+        cv.draw_region(image, cv.green_roi, (255, 255, 0))
+        Image.fromarray(image, 'RGB').show()
+
+# Function to compute the steering based on lane markings
+def compute_steering(image: np.ndarray) -> float:
+    mask_left_edge, mask_right_edge = detect_lane_markings(image)
+    
+    # Get the steering weight matrices for left and right lane markings
+    steer_matrix_left = get_steer_matrix_left_lane_markings(mask_left_edge.shape)
+    steer_matrix_right = get_steer_matrix_right_lane_markings(mask_right_edge.shape)
+    
+    # Compute the steering command by summing weighted masks
+    steering = np.sum(steer_matrix_left * mask_left_edge) + np.sum(steer_matrix_right * mask_right_edge)
+    
+    return steering
+
+def detect_lane_markings(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Detects the lane markings in the input image.
+    Returns masks for yellow (left) and white (right) lane markings.
+    """
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    yellow_lower = np.array([20, 100, 100], dtype=np.uint8)
+    yellow_upper = np.array([30, 255, 255], dtype=np.uint8)
+    white_lower = np.array([0, 0, 200], dtype=np.uint8)
+    white_upper = np.array([180, 25, 255], dtype=np.uint8)
+
+    mask_left_edge = cv2.inRange(hsv_image, yellow_lower, yellow_upper)
+    mask_right_edge = cv2.inRange(hsv_image, white_lower, white_upper)
+
+    return mask_left_edge, mask_right_edge
 
 def get_steer_matrix_left_lane_markings(shape: Tuple[int, int]) -> np.ndarray:
     """
     Args:
-        shape:              The shape of the steer matrix. aaa
-
-    Return:
-        steer_matrix_left:  The steering (angular rate) matrix for Braitenberg-like control
-                            using the masked left lane markings (numpy.ndarray)
+        shape: The shape of the steer matrix.
+    Returns:
+        steer_matrix_left: The steering matrix for Braitenberg-like control using the left lane markings.
     """
     rows, cols = shape
     steer_matrix_left = np.zeros((rows, cols))
@@ -21,15 +79,12 @@ def get_steer_matrix_left_lane_markings(shape: Tuple[int, int]) -> np.ndarray:
 
     return steer_matrix_left
 
-
 def get_steer_matrix_right_lane_markings(shape: Tuple[int, int]) -> np.ndarray:
     """
     Args:
-        shape:               The shape of the steer matrix.
-
-    Return:
-        steer_matrix_right:  The steering (angular rate) matrix for Braitenberg-like control
-                             using the masked right lane markings (numpy.ndarray)
+        shape: The shape of the steer matrix.
+    Returns:
+        steer_matrix_right: The steering matrix for Braitenberg-like control using the right lane markings.
     """
     rows, cols = shape
     steer_matrix_right = np.zeros((rows, cols))
@@ -41,50 +96,13 @@ def get_steer_matrix_right_lane_markings(shape: Tuple[int, int]) -> np.ndarray:
 
     return steer_matrix_right
 
-
-def detect_lane_markings(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Args:
-        image: An image from the robot's camera in the BGR color space (numpy.ndarray)
-    Return:
-        mask_left_edge:   Masked image for the dashed-yellow line (numpy.ndarray)
-        mask_right_edge:  Masked image for the solid-white line (numpy.ndarray)
-    """
-    # Convert the image to HSV color space for easier color detection here
+if __name__ == '__main__':
+    # Initialize car interface (e.g., use a mock or real car control interface)
+    mock_car = MockCar()
+    driver = Driver(mock_car)
     
-    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    # Simulating image input (use actual camera feed in Duckietown)
+    dummy_image = np.zeros((240, 320, 3), dtype=np.uint8)  # Placeholder image for testing
 
-    # Define color ranges for yellow dashed line and white solid line
-    yellow_lower = np.array([20, 100, 100], dtype=np.uint8)
-    yellow_upper = np.array([30, 255, 255], dtype=np.uint8)
-    white_lower = np.array([0, 0, 200], dtype=np.uint8)
-    white_upper = np.array([180, 25, 255], dtype=np.uint8)
-
-    # Create masks for yellow and white colors
-    mask_left_edge = cv2.inRange(hsv_image, yellow_lower, yellow_upper)
-    mask_right_edge = cv2.inRange(hsv_image, white_lower, white_upper)
-
-    return mask_left_edge, mask_right_edge
-
-
-def compute_steering(image: np.ndarray) -> float:
-    """
-    Computes the steering command based on the lane detection.
-    
-    Args:
-        image: An image from the robot's camera in the BGR color space (numpy.ndarray)
-    
-    Return:
-        steering: Steering command for the Duckiebot.
-    """
-    # Detect lane markings
-    mask_left_edge, mask_right_edge = detect_lane_markings(image)
-    
-    # Get the weight matrices
-    steer_matrix_left = get_steer_matrix_left_lane_markings(mask_left_edge.shape)
-    steer_matrix_right = get_steer_matrix_right_lane_markings(mask_right_edge.shape)
-    
-    # Compute the steering using the weighted sum of detected lanes
-    steering = np.sum(steer_matrix_left * mask_left_edge) + np.sum(steer_matrix_right * mask_right_edge)
-    
-    return steering
+    # Run the update method with dummy image
+    driver.update(dummy_image)
