@@ -47,20 +47,39 @@ def compute_steering(image: np.ndarray) -> float:
 
 def detect_lane_markings(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Detects the lane markings in the input image.
-    Returns masks for yellow (left) and white (right) lane markings.
+    Args:
+        image: An image from the robot's camera in the BGR color space (numpy.ndarray)
+    Return:
+        mask_left_edge:   Masked image for the dashed-yellow line (numpy.ndarray)
+        mask_right_edge:  Masked image for the solid-white line (numpy.ndarray)
     """
+    # Convert the image to HSV color space for easier color detection
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
+    # Define color ranges for yellow dashed line and white solid line
     yellow_lower = np.array([20, 100, 100], dtype=np.uint8)
     yellow_upper = np.array([30, 255, 255], dtype=np.uint8)
     white_lower = np.array([0, 0, 200], dtype=np.uint8)
     white_upper = np.array([180, 25, 255], dtype=np.uint8)
 
+    # Create masks for yellow and white colors
     mask_left_edge = cv2.inRange(hsv_image, yellow_lower, yellow_upper)
     mask_right_edge = cv2.inRange(hsv_image, white_lower, white_upper)
 
-    return mask_left_edge, mask_right_edge
+    # Debugging: Scale the masks to make them visible
+    mask_left_edge_scaled = cv2.merge([mask_left_edge, mask_left_edge, mask_left_edge])  # Convert to 3 channels
+    mask_right_edge_scaled = cv2.merge([mask_right_edge, mask_right_edge, mask_right_edge])  # Convert to 3 channels
+
+    mask_left_edge_scaled = cv2.convertScaleAbs(mask_left_edge_scaled)  # Scale the values to visible range
+    mask_right_edge_scaled = cv2.convertScaleAbs(mask_right_edge_scaled)  # Scale the values to visible range
+
+    # Show the masks for debugging
+    cv2.imshow("Left Mask", mask_left_edge_scaled)
+    cv2.imshow("Right Mask", mask_right_edge_scaled)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+    return mask_left_edge, mask_right_edge 
 
 def get_steer_matrix_left_lane_markings(shape: Tuple[int, int]) -> np.ndarray:
     """
