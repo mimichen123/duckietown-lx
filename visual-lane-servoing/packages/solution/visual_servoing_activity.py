@@ -17,30 +17,41 @@ def detect_lane_markings(image: np.ndarray
     h, w = image.shape[:2]
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-    # 1) Yellow mask over entire image
-    mask_left = cv2.inRange(hsv, YELLOW_LOWER, YELLOW_UPPER)
+    # yellow same as before
+    mask_left = cv2.inRange(hsv,
+        np.array([20, 100, 100], dtype=np.uint8),
+        np.array([30, 255, 255], dtype=np.uint8)
+    )
 
-    # 2) White mask only in bottom half
-    roi           = hsv[h//2: , :]
-    mask_roi      = cv2.inRange(roi, WHITE_LOWER, WHITE_UPPER)
-    kernel        = cv2.getStructuringElement(cv2.MORPH_RECT, (7,7))
-    mask_roi      = cv2.morphologyEx(mask_roi, cv2.MORPH_OPEN, kernel)
-    mask_right    = np.zeros((h, w), dtype=np.uint8)
-    mask_right[h//2: , :] = mask_roi
+    # tighten white: very low saturation, high value
+    white_lower = np.array([0, 0, 180], dtype=np.uint8)
+    white_upper = np.array([180, 30, 255], dtype=np.uint8)
 
-    # 3) Sample one pixel from each mask
+    # bottom 40% ROI
+    y0 = int(h * 0.6)
+    roi = hsv[y0:, :]
+
+    # initial mask, open then close
+    mask_roi = cv2.inRange(roi, white_lower, white_upper)
+    kernel  = cv2.getStructuringElement(cv2.MORPH_RECT, (7,7))
+    mask_roi = cv2.morphologyEx(mask_roi, cv2.MORPH_OPEN,  kernel)
+    mask_roi = cv2.morphologyEx(mask_roi, cv2.MORPH_CLOSE, kernel)
+
+    # put it back
+    mask_right = np.zeros((h, w), dtype=np.uint8)
+    mask_right[y0:,:] = mask_roi
+
+    # sample one point from each
     def sample(mask):
         pts = cv2.findNonZero(mask)
-        if pts is None:
-            return None
-        # findNonZero returns Nx1x2 array of (x,y); grab the first
+        if pts is None: return None
         x, y = pts[0][0]
         return (int(y), int(x))
 
     yellow_px = sample(mask_left)
     white_px  = sample(mask_right)
 
-    # 4) Compute center
+    # compute lane center
     if yellow_px and white_px:
         lane_center = ((yellow_px[0] + white_px[0]) / 2.0,
                        (yellow_px[1] + white_px[1]) / 2.0)
