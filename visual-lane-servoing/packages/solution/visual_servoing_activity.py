@@ -92,7 +92,7 @@ def detect_lane_markings(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     else:
         lane_center = (0.0, image.shape[1]/2.0)
 
-    return mask_left_edge, mask_right_edge, lane_center
+    return mask_left_edge, mask_right_edge
 
 def compute_steering(image: np.ndarray) -> float:
     """
