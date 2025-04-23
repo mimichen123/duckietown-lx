@@ -74,6 +74,7 @@ def detect_lane_markings(image: np.ndarray
     white_upper  = np.array([180,  25, 255], dtype=np.uint8)
 
     mask_left_edge  = cv2.inRange(hsv, yellow_lower, yellow_upper)
+    yellow_px = tuple(map(int, pts[0][0])) if pts is not None else None
     mask_right_edge = cv2.inRange(hsv, white_lower,  white_upper)
 
     # 2) Find a representative yellow/white pixel for centering
