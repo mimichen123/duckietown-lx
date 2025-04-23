@@ -7,8 +7,8 @@ YELLOW_LOWER = np.array([20, 100, 100], dtype=np.uint8)
 YELLOW_UPPER = np.array([30, 255, 255], dtype=np.uint8)
 
 # HSV bounds for white (tuned to reject window glare)
-WHITE_LOWER = np.array([0, 0, 180], dtype=np.uint8)
-WHITE_UPPER = np.array([180, 30, 255], dtype=np.uint8)
+WHITE_LOWER = np.array([0, 0, 150], dtype=np.uint8)
+WHITE_UPPER = np.array([180, 60, 255], dtype=np.uint8)
 
 LANE_WIDTH_PX = 240  # used if only one line found
 
@@ -21,10 +21,14 @@ def detect_lane_markings(image: np.ndarray
     mask_left = cv2.inRange(hsv, YELLOW_LOWER, YELLOW_UPPER)
 
     # 2) white mask only in bottom 40%
-    y0 = int(h * 0.6)
+    y0 = int(h * 0.5)
     roi = hsv[y0:, :]
     mask_roi = cv2.inRange(roi, WHITE_LOWER, WHITE_UPPER)
-    kernel  = cv2.getStructuringElement(cv2.MORPH_RECT, (7,7))
+                  # brightness mask
+    _, bright = cv2.threshold(roi[:,:,2], 150, 255, cv2.THRESH_BINARY)
+    mask_roi = cv2.bitwise_and(mask_roi, bright)
+                
+    kernel  = cv2.getStructuringElement(cv2.MORPH_RECT, (9,9))
     mask_roi = cv2.morphologyEx(mask_roi, cv2.MORPH_OPEN,  kernel)
     mask_roi = cv2.morphologyEx(mask_roi, cv2.MORPH_CLOSE, kernel)
 
