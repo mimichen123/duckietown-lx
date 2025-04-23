@@ -42,13 +42,13 @@ def get_steer_matrix_right_lane_markings(shape: Tuple[int, int]) -> np.ndarray:
     return steer_matrix_right
 
 
-def detect_lane_markings(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def detect_lane_markings(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray, Tuple[int, int]]:
     """
-    Args:
-        image: An image from the robot's camera in the BGR color space (numpy.ndarray)
-    Return:
-        mask_left_edge:   Masked image for the dashed-yellow line (numpy.ndarray)
-        mask_right_edge:  Masked image for the solid-white line (numpy.ndarray)
+    Detects the lane markings in the input image.
+    Returns:
+        - mask_left_edge: Masked image for the dashed-yellow line (numpy.ndarray)
+        - mask_right_edge: Masked image for the solid-white line (numpy.ndarray)
+        - lane_center: The center point of the detected lane (Tuple[int, int])
     """
     # Convert the image to HSV color space for easier color detection
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -63,7 +63,23 @@ def detect_lane_markings(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     mask_left_edge = cv2.inRange(hsv_image, yellow_lower, yellow_upper)
     mask_right_edge = cv2.inRange(hsv_image, white_lower, white_upper)
 
-    return mask_left_edge, mask_right_edge
+    # Find the coordinates of the left (yellow) and right (white) lane markings
+    yellow, white, _ = cv.analyze_img(image)
+
+    # Calculate the lane center based on the detected yellow and white lane markings
+    lane_center = None
+    if yellow and white:
+        lane_center = (yellow[0] + white[0]) / 2.0, (yellow[1] + white[1]) / 2.0
+    elif white and not yellow:
+        lane_center = (white[0], white[1] - cv.white_width - 1*(cv.LANE_WIDTH_PX / 2.0))
+    elif yellow and not white:
+        lane_center = (yellow[0], yellow[1] + cv.yellow_width + 1*(cv.LANE_WIDTH_PX / 2.0))
+
+    # If no lane center was detected, use the previous center (you might need to store it for future use)
+    if lane_center is None:
+        lane_center = (0, 160)  # You can store and reuse the last lane center if needed
+
+    return mask_left_edge, mask_right_edge, lane_center
 
 
 def compute_steering(image: np.ndarray) -> float:
