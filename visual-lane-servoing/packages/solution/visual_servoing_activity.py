@@ -67,7 +67,6 @@ def detect_lane_markings(image: np.ndarray
     """
     # 1) Convert to HSV and threshold
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    # these are your HSV bounds for yellow and white:
     yellow_lower = np.array([20, 100, 100], dtype=np.uint8)
     yellow_upper = np.array([30, 255, 255], dtype=np.uint8)
     white_lower  = np.array([  0,   0, 200], dtype=np.uint8)
@@ -76,10 +75,9 @@ def detect_lane_markings(image: np.ndarray
     mask_left_edge  = cv2.inRange(hsv, yellow_lower, yellow_upper)
     mask_right_edge = cv2.inRange(hsv, white_lower,  white_upper)
 
-     # 2) pick a representative pixel from each mask
+    # 2) Pick a representative pixel from each mask
     pts_y = cv2.findNonZero(mask_left_edge)
     if pts_y is not None:
-        # pts_y is Nx1x2 array of (x,y) coords, take the first one
         x, y = pts_y[0][0]
         yellow_px = (int(y), int(x))
     else:
