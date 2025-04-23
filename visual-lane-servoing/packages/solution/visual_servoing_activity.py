@@ -13,7 +13,7 @@ WHITE_UPPER = np.array([180, 30, 255], dtype=np.uint8)
 LANE_WIDTH_PX = 240  # used if only one line found
 
 def detect_lane_markings(image: np.ndarray
-        ) -> Tuple[np.ndarray, np.ndarray, Tuple[float, float]]:
+        ) -> Tuple[np.ndarray, np.ndarray]:
     h, w = image.shape[:2]
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
@@ -52,7 +52,7 @@ def detect_lane_markings(image: np.ndarray
     else:
         lane_center = (0.0, w/2.0)
 
-    return mask_left, mask_right, lane_center
+    return mask_left, mask_right
 
 def get_steer_matrix_left_lane_markings(shape: Tuple[int,int]) -> np.ndarray:
     rows, cols = shape
