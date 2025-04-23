@@ -57,8 +57,8 @@ def get_steer_matrix_right_lane_markings(shape: Tuple[int,int]) -> np.ndarray:
             M[i, j] = j / cols
     return M
 
-def detect_lane_markings(image: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray, Tuple[float,float]]:
+def detect_lane_markings(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+
     """
     Returns (mask_left_edge, mask_right_edge, lane_center).
     - mask_left_edge: 255 where yellow line is detected
