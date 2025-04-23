@@ -66,19 +66,6 @@ def detect_lane_markings(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     mask_left_edge = cv2.inRange(hsv_image, yellow_lower, yellow_upper)
     mask_right_edge = cv2.inRange(hsv_image, white_lower, white_upper)
 
-    # Debugging: Scale the masks to make them visible
-    mask_left_edge_scaled = cv2.merge([mask_left_edge, mask_left_edge, mask_left_edge])  # Convert to 3 channels
-    mask_right_edge_scaled = cv2.merge([mask_right_edge, mask_right_edge, mask_right_edge])  # Convert to 3 channels
-
-    mask_left_edge_scaled = cv2.convertScaleAbs(mask_left_edge_scaled)  # Scale the values to visible range
-    mask_right_edge_scaled = cv2.convertScaleAbs(mask_right_edge_scaled)  # Scale the values to visible range
-
-    # Show the masks for debugging
-    cv2.imshow("Left Mask", mask_left_edge_scaled)
-    cv2.imshow("Right Mask", mask_right_edge_scaled)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
     return mask_left_edge, mask_right_edge 
 
 def get_steer_matrix_left_lane_markings(shape: Tuple[int, int]) -> np.ndarray:
