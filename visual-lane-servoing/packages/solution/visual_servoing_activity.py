@@ -64,7 +64,7 @@ def detect_lane_markings(image: np.ndarray
 
     return mask_left, mask_right, lane_center
 
-def get_steer_matrix_left(shape: Tuple[int,int]) -> np.ndarray:
+def get_steer_matrix_left_lane_markings(shape: Tuple[int,int]) -> np.ndarray:
     rows, cols = shape
     M = np.zeros((rows, cols), float)
     for i in range(rows):
@@ -72,7 +72,7 @@ def get_steer_matrix_left(shape: Tuple[int,int]) -> np.ndarray:
             M[i, j] = - j/cols
     return M
 
-def get_steer_matrix_right(shape: Tuple[int,int]) -> np.ndarray:
+def get_steer_matrix_right_lane_markings(shape: Tuple[int,int]) -> np.ndarray:
     rows, cols = shape
     M = np.zeros((rows, cols), float)
     for i in range(rows):
