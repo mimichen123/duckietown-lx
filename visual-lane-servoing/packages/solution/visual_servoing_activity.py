@@ -64,18 +64,37 @@ def detect_lane_markings(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray, Tup
     mask_right_edge = cv2.inRange(hsv_image, white_lower, white_upper)
 
     # Find the coordinates of the left (yellow) and right (white) lane markings
-    yellow, white, _ = cv.analyze_img(image)
+    yellow = None
+    white = None
+
+    # Find yellow line (left lane)
+    yellow_contours, _ = cv2.findContours(mask_left_edge, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if yellow_contours:
+        yellow = max(yellow_contours, key=cv2.contourArea)  # Get the largest contour (yellow line)
+        yellow_moments = cv2.moments(yellow)
+        yellow_center_x = int(yellow_moments['m10'] / yellow_moments['m00'])
+        yellow_center_y = int(yellow_moments['m01'] / yellow_moments['m00'])
+        yellow = (yellow_center_x, yellow_center_y)
+
+    # Find white line (right lane)
+    white_contours, _ = cv2.findContours(mask_right_edge, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if white_contours:
+        white = max(white_contours, key=cv2.contourArea)  # Get the largest contour (white line)
+        white_moments = cv2.moments(white)
+        white_center_x = int(white_moments['m10'] / white_moments['m00'])
+        white_center_y = int(white_moments['m01'] / white_moments['m00'])
+        white = (white_center_x, white_center_y)
 
     # Calculate the lane center based on the detected yellow and white lane markings
     lane_center = None
     if yellow and white:
-        lane_center = (yellow[0] + white[0]) / 2.0, (yellow[1] + white[1]) / 2.0
+        lane_center = ((yellow[0] + white[0]) / 2.0, (yellow[1] + white[1]) / 2.0)
     elif white and not yellow:
-        lane_center = (white[0], white[1] - cv.white_width - 1*(cv.LANE_WIDTH_PX / 2.0))
+        lane_center = (white[0], white[1] - 100)  # Adjusting based on white line (for example)
     elif yellow and not white:
-        lane_center = (yellow[0], yellow[1] + cv.yellow_width + 1*(cv.LANE_WIDTH_PX / 2.0))
+        lane_center = (yellow[0], yellow[1] + 100)  # Adjusting based on yellow line (for example)
 
-    # If no lane center was detected, use the previous center (you might need to store it for future use)
+    # If no lane center was detected, use a default center (or the previous one stored)
     if lane_center is None:
         lane_center = (0, 160)  # You can store and reuse the last lane center if needed
 
