@@ -74,19 +74,31 @@ def detect_lane_markings(image: np.ndarray
     white_upper  = np.array([180,  25, 255], dtype=np.uint8)
 
     mask_left_edge  = cv2.inRange(hsv, yellow_lower, yellow_upper)
-    yellow_px = tuple(map(int, pts[0][0])) if pts is not None else None
     mask_right_edge = cv2.inRange(hsv, white_lower,  white_upper)
 
-    # 2) Find a representative yellow/white pixel for centering
-    yellow_px, white_px, _ = analyze_img(image)
+     # 2) pick a representative pixel from each mask
+    pts_y = cv2.findNonZero(mask_left_edge)
+    if pts_y is not None:
+        # pts_y is Nx1x2 array of (x,y) coords, take the first one
+        x, y = pts_y[0][0]
+        yellow_px = (int(y), int(x))
+    else:
+        yellow_px = None
+
+    pts_w = cv2.findNonZero(mask_right_edge)
+    if pts_w is not None:
+        x, y = pts_w[0][0]
+        white_px = (int(y), int(x))
+    else:
+        white_px = None
 
     # 3) Compute lane center
     if yellow_px and white_px:
         lane_center = ((yellow_px[0] + white_px[0]) / 2.0,
                        (yellow_px[1] + white_px[1]) / 2.0)
-    elif white_px and not yellow_px:
+    elif white_px:
         lane_center = (white_px[0], white_px[1] - LANE_WIDTH_PX/2.0)
-    elif yellow_px and not white_px:
+    elif yellow_px:
         lane_center = (yellow_px[0], yellow_px[1] + LANE_WIDTH_PX/2.0)
     else:
         lane_center = (0.0, image.shape[1]/2.0)
