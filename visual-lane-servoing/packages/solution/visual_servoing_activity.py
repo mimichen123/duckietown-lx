@@ -13,21 +13,23 @@ WHITE_UPPER = np.array([180, 60, 255], dtype=np.uint8)
 LANE_WIDTH_PX = 240  # used if only one line found
 
 def detect_lane_markings(image: np.ndarray
-        ) -> Tuple[np.ndarray, np.ndarray]:
+        ) -> Tuple[np.ndarray, np.ndarray, Tuple[float,float]]:
     h, w = image.shape[:2]
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
     # 1) yellow mask over whole image
     mask_left = cv2.inRange(hsv, YELLOW_LOWER, YELLOW_UPPER)
 
-    # 2) white mask only in bottom 40%
+    # 2) white mask only in bottom 50%
     y0 = int(h * 0.5)
     roi = hsv[y0:, :]
     mask_roi = cv2.inRange(roi, WHITE_LOWER, WHITE_UPPER)
-                  # brightness mask
+
+    # brightness mask
     _, bright = cv2.threshold(roi[:,:,2], 150, 255, cv2.THRESH_BINARY)
     mask_roi = cv2.bitwise_and(mask_roi, bright)
-                
+
+    # morphological cleanup
     kernel  = cv2.getStructuringElement(cv2.MORPH_RECT, (9,9))
     mask_roi = cv2.morphologyEx(mask_roi, cv2.MORPH_OPEN,  kernel)
     mask_roi = cv2.morphologyEx(mask_roi, cv2.MORPH_CLOSE, kernel)
@@ -38,7 +40,8 @@ def detect_lane_markings(image: np.ndarray
     # 3) sample one point from each mask for centering
     def sample(mask):
         pts = cv2.findNonZero(mask)
-        if pts is None: return None
+        if pts is None:
+            return None
         x, y = pts[0][0]
         return (int(y), int(x))
 
@@ -58,6 +61,7 @@ def detect_lane_markings(image: np.ndarray
 
     return mask_left, mask_right
 
+
 def get_steer_matrix_left_lane_markings(shape: Tuple[int,int]) -> np.ndarray:
     rows, cols = shape
     M = np.zeros((rows, cols), float)
@@ -66,6 +70,7 @@ def get_steer_matrix_left_lane_markings(shape: Tuple[int,int]) -> np.ndarray:
             M[i, j] = - j/cols
     return M
 
+
 def get_steer_matrix_right_lane_markings(shape: Tuple[int,int]) -> np.ndarray:
     rows, cols = shape
     M = np.zeros((rows, cols), float)
@@ -73,6 +78,7 @@ def get_steer_matrix_right_lane_markings(shape: Tuple[int,int]) -> np.ndarray:
         for j in range(cols):
             M[i, j] = j/cols
     return M
+
 
 def compute_steering(image: np.ndarray) -> float:
     mask_left, mask_right, _ = detect_lane_markings(image)
