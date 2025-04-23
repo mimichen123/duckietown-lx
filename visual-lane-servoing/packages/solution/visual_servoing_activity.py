@@ -57,31 +57,29 @@ def get_steer_matrix_right_lane_markings(shape: Tuple[int,int]) -> np.ndarray:
             M[i, j] = j / cols
     return M
 
-def detect_lane_markings(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-
+def detect_lane_markings(image: np.ndarray
+        ) -> Tuple[np.ndarray, np.ndarray, Tuple[float, float]]:
     """
     Returns (mask_left_edge, mask_right_edge, lane_center).
     - mask_left_edge: 255 where yellow line is detected
     - mask_right_edge:255 where white line is detected
     - lane_center:    (row, col) float center between detected lines
     """
-    # blank masks
-    mask_left_edge  = np.zeros_like(image[:, :, 0])
-    mask_right_edge = np.zeros_like(image[:, :, 0])
+    # 1) Convert to HSV and threshold
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    # these are your HSV bounds for yellow and white:
+    yellow_lower = np.array([20, 100, 100], dtype=np.uint8)
+    yellow_upper = np.array([30, 255, 255], dtype=np.uint8)
+    white_lower  = np.array([  0,   0, 200], dtype=np.uint8)
+    white_upper  = np.array([180,  25, 255], dtype=np.uint8)
 
-    # pixel‐wise color thresholding
-    for r in range(image.shape[0]):
-        for c in range(image.shape[1]):
-            pix = image[r, c]
-            if is_color(pix, yellow, YELLOW_TOLERANCE):
-                mask_left_edge[r, c] = 255
-            if is_color(pix, white, WHITE_TOLERANCE):
-                mask_right_edge[r, c] = 255
+    mask_left_edge  = cv2.inRange(hsv, yellow_lower, yellow_upper)
+    mask_right_edge = cv2.inRange(hsv, white_lower,  white_upper)
 
-    # scan for one representative pixel of each
+    # 2) Find a representative yellow/white pixel for centering
     yellow_px, white_px, _ = analyze_img(image)
 
-    # compute center
+    # 3) Compute lane center
     if yellow_px and white_px:
         lane_center = ((yellow_px[0] + white_px[0]) / 2.0,
                        (yellow_px[1] + white_px[1]) / 2.0)
@@ -92,12 +90,9 @@ def detect_lane_markings(image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     else:
         lane_center = (0.0, image.shape[1]/2.0)
 
-    return mask_left_edge, mask_right_edge
+    return mask_left_edge, mask_right_edge, lane_center
 
 def compute_steering(image: np.ndarray) -> float:
-    """
-    Returns a single steering command (sum of weighted masks).
-    """
     mask_left, mask_right, _ = detect_lane_markings(image)
     ML = get_steer_matrix_left_lane_markings(mask_left.shape)
     MR = get_steer_matrix_right_lane_markings(mask_right.shape)
